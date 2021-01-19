@@ -45,7 +45,7 @@ class BOUTDecoder(BaseDecoder, decoder_name="bout++"):
 
     def parse_sim_output(self, run_info=None, *args, **kwargs):
         data_files = self._get_output_path(run_info, self.target_filename)
-        df = open_boutdataset(data_files)
+        df = open_boutdataset(data_files, info=False)
 
         # For now, just return the variable itself
         # TODO: add analysis step
