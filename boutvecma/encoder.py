@@ -20,7 +20,7 @@ class BOUTEncoder(BaseEncoder, encoder_name="bout++_encoder"):
         else:
             self._options = BoutOptions()
 
-    def encode(self, params={}, target_dir=""):
+    def encode(self, params=None, target_dir=""):
         """Create a BOUT.inp file in target_dir with modified parameters.
 
         Sub-sections are specified using colons in the params keys
@@ -36,10 +36,13 @@ class BOUTEncoder(BaseEncoder, encoder_name="bout++_encoder"):
         key = 42
 
         """
-        options = deepcopy(self._options)
+        if params:
+            options = deepcopy(self._options)
 
-        for key, value in params.items():
-            options[key] = value
+            for key, value in params.items():
+                options[key] = value
+        else:
+            options = self._options
 
         # Note: Here options could be BoutOptions or BoutOptionsFile
         # so can't just use options.write
