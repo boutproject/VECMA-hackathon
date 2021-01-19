@@ -39,4 +39,12 @@ campaign.apply_analysis(uq.analysis.PCEAnalysis(sampler=sampler, qoi_cols=["T"])
 
 results = campaign.get_last_analysis()
 
-results.plot_moments("T")
+state_filename = os.path.join(campaign.campaign_dir, "campaign_state.json")
+campaign.save_state(state_filename)
+
+results.plot_moments(
+    "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/moments.png"
+)
+results.plot_sobols_first(
+    "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/sobols_first.png"
+)
