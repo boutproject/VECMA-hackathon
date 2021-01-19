@@ -20,6 +20,8 @@ class BOUTEncoder(BaseEncoder, encoder_name="bout++_encoder"):
         else:
             self._options = BoutOptions()
 
+        self.template_input = template_input
+
     def encode(self, params=None, target_dir=""):
         """Create a BOUT.inp file in target_dir with modified parameters.
 
@@ -48,3 +50,9 @@ class BOUTEncoder(BaseEncoder, encoder_name="bout++_encoder"):
         # so can't just use options.write
         with open(os.path.join(target_dir, "BOUT.inp"), "w") as f:
             f.write(str(options))
+
+    def element_version(self):
+        return "0.1"
+
+    def get_restart_dict(self):
+        return {'template_input':self.template_input}
