@@ -47,11 +47,12 @@ class BOUTDecoder(BaseDecoder, decoder_name="bout++"):
         data_files = self._get_output_path(run_info, self.target_filename)
         df = open_boutdataset(data_files)
 
-        if self.variables is None:
-            return df
         # For now, just return the variable itself
         # TODO: add analysis step
-        return {variable: df[variable] for variable in self.variables}
+        return {
+            variable: df[variable][-1, ...].values.flatten().tolist()
+            for variable in self.variables
+        }
 
     def get_restart_dict(self):
         return {
