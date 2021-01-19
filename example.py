@@ -29,9 +29,13 @@ run_dirs = campaign.populate_runs_dir()
 
 print(f"Created run directories: {run_dirs}")
 
+time_start = time.time()
 campaign.apply_for_each_run_dir(
     uq.actions.ExecuteLocal(os.path.abspath("build/models/conduction/conduction -d ."))
 )
+time_end = time.time()
+
+print(f"Finished, took {time_end - time_start}")
 
 campaign.collate()
 
