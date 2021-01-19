@@ -4,20 +4,26 @@ import boutvecma
 import easyvvuq as uq
 import chaospy
 import os
+import numpy as np
+import time
 
 campaign = uq.Campaign(name="Conduction")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
 decoder = boutvecma.BOUTDecoder(variables=["T"])
 params = {
-    "conduction:chi": {"type": "float", "min": 0.0, "max": 2.0, "default": 1.0},
-    "T:scale": {"type": "float", "min": 0.0, "max": 100.0, "default": 1.0},
+    "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
+    "T:scale": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
+    "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
+    "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
 
 campaign.add_app("1D_conduction", params=params, encoder=encoder, decoder=decoder)
 
 vary = {
-    "conduction:chi": chaospy.Uniform(0.8, 1.2),
+    "conduction:chi": chaospy.LogUniform(np.log(1e-2), np.log(1e2)),
     "T:scale": chaospy.Uniform(0.5, 1.5),
+    "T:gauss_width": chaospy.Uniform(0.01, 0.4),
+    "T:gauss_centre": chaospy.Uniform(0.0, 2 * np.pi),
 }
 
 sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)
