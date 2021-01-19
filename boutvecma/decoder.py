@@ -54,7 +54,11 @@ class BOUTDecoder(BaseDecoder, decoder_name="bout++"):
         return {variable: df[variable] for variable in self.variables}
 
     def get_restart_dict(self):
-        return {"target_dir": self.target_dir, "target_filename": self.target_filename}
+        return {
+            "target_dir": self.target_dir,
+            "target_filename": self.target_filename,
+            "variables": self.variables,
+        }
 
     @staticmethod
     def element_version():
