@@ -6,6 +6,7 @@ import chaospy
 import os
 import numpy as np
 import time
+import maplotlib.pyplot as plt
 
 campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
@@ -50,9 +51,11 @@ results = campaign.get_last_analysis()
 state_filename = os.path.join(campaign.campaign_dir, "campaign_state.json")
 campaign.save_state(state_filename)
 
+plt.figure()
 results.plot_moments(
     "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/moments.png"
 )
+plt.figure()
 results.plot_sobols_first(
     "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/sobols_first.png"
 )
