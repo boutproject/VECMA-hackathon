@@ -32,7 +32,9 @@ chi = 1.0
 [T] # Settings for the T variable
 
 scale = 1.0  # Size of the initial perturbation
-function = gauss(y-pi, 0.2)  # The form of the initial perturbation. y from 0 to 2*pi
+gauss_width = 0.2
+gauss_centre = pi
+function = gauss(y - gauss_centre, gauss_width)  # The form of the initial perturbation. y from 0 to 2*pi
 
 # Set the value on the boundaries to 0 (4th order extrapolation to ghostpoint)
 bndry_all = dirichlet_o4(0.0)
