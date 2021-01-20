@@ -13,7 +13,7 @@ git clone --recursive git@github.com:boutproject/VECMA-hackathon.git
 or run
 
 ~~~
-git submodules --init --recursive --remote
+git submodules --init --recursive
 ~~~
 
 following the initial clone to ensure these submodules are available. 
