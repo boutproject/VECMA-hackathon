@@ -248,3 +248,4 @@ cython_debug/
 
 # EasyVVUQ run directories
 /Conduction.*/
+/dask-worker-space
