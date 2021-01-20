@@ -22,8 +22,6 @@ campaign.add_app("1D_conduction", params=params, encoder=encoder, decoder=decode
 vary = {
     "conduction:chi": chaospy.LogUniform(np.log(1e-2), np.log(1e2)),
     "T:scale": chaospy.Uniform(0.5, 1.5),
-    "T:gauss_width": chaospy.Uniform(0.01, 0.4),
-    "T:gauss_centre": chaospy.Uniform(0.0, 2 * np.pi),
 }
 
 sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)
