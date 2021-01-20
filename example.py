@@ -7,7 +7,7 @@ import os
 import numpy as np
 import time
 
-campaign = uq.Campaign(name="Conduction")
+campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
 decoder = boutvecma.BOUTDecoder(variables=["T"])
 params = {
