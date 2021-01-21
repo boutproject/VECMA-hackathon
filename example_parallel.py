@@ -9,6 +9,7 @@ import numpy as np
 import time
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
+import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__":
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     campaign = uq.CampaignDask(name="Conduction.")
+    print(f"Running in {campaign.campaign_dir}")
     encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
     decoder = boutvecma.BOUTDecoder(variables=["T"])
     params = {
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     campaign.add_app("1D_conduction", params=params, encoder=encoder, decoder=decoder)
 
     vary = {
-        "conduction:chi": chaospy.LogUniform(np.log(1e-2), np.log(1e2)),
+        "conduction:chi": chaospy.Uniform(0.2, 4.0),
         "T:scale": chaospy.Uniform(0.5, 1.5),
         "T:gauss_width": chaospy.Uniform(0.01, 0.4),
         "T:gauss_centre": chaospy.Uniform(0.0, 2 * np.pi),
@@ -57,16 +59,20 @@ if __name__ == "__main__":
     print(f"Created run directories: {run_dirs}")
 
     if args.batch:
-        # Not sure we actually want SLURM for this example, only a few
-        # seconds per run, on 1 core
+        # Example of use on Viking
         cluster = SLURMCluster(
-            job_extra=["#### TODO: SLURM args ####"],
-            queue="#### TODO: SLURM queue ####",
+            job_extra=[
+                "--job-name=VVUQ",
+                "--account=PHYS-YPIRSE-2019",
+            ],
             cores=1,
             memory="1 GB",
             processes=1,
+            walltime="00:10:00",
+            interface="ib0",
         )
-        cluster.scale(32)
+        cluster.scale(16)
+        print(f"Job script:\n{cluster.job_script()}")
         client = Client(cluster)
     else:
         client = Client(processes=True, threads_per_worker=1)
@@ -95,9 +101,11 @@ if __name__ == "__main__":
     state_filename = os.path.join(campaign.campaign_dir, "campaign_state.json")
     campaign.save_state(state_filename)
 
+    plt.figure()
     results.plot_moments(
         "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/moments.png"
     )
+    plt.figure()
     results.plot_sobols_first(
         "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/sobols_first.png"
     )
