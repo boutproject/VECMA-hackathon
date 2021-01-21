@@ -1,4 +1,4 @@
 __all__ = ["decoder", "encoder"]
 
-from .decoder import BOUTDecoder
+from .decoder import BaseBOUTDecoder, SimpleBOUTDecoder
 from .encoder import BOUTEncoder

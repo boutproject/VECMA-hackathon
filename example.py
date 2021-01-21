@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
-decoder = boutvecma.BOUTDecoder(variables=["T"])
+decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
 params = {
     "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
     "T:scale": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
