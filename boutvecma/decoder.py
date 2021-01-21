@@ -5,6 +5,7 @@ from boutdata.data import BoutOptionsFile
 from xbout.load import open_boutdataset
 import inspect
 import re
+import copy
 
 
 def flatten_dataframe_for_JSON(df):
@@ -103,6 +104,43 @@ class SimpleBOUTDecoder(BaseBOUTDecoder):
         return {
             variable: flatten_dataframe_for_JSON(df[variable][-1, ...])
             for variable in self.variables
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
+class SampleLocationBOUTDecoder(BaseBOUTDecoder):
+    """Samples variables at single points or areas"""
+
+    def __init__(self, sample_locations):
+        """
+        sample_locations should be a list of dicts, each like:
+
+            {
+              "variable": "T",  # variable to sample
+              "output_name": "T_centre",  # name in the output
+              # Following are the indices to sample
+              "x": 0,
+              "y": 50,
+              "z":0
+            }
+        """
+        super().__init__()
+
+        self.sample_locations = sample_locations
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info)
+
+        samples = copy.deepcopy(self.sample_locations)
+
+        return {
+            variable.pop("output_name"): flatten_dataframe_for_JSON(
+                df[variable.pop("variable")][variable]
+            )
+            for variable in samples
         }
 
     @staticmethod
