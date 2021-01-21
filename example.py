@@ -6,7 +6,7 @@ import chaospy
 import os
 import numpy as np
 import time
-import maplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
