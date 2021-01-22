@@ -5,14 +5,14 @@ from boutdata.data import BoutOptions
 
 
 def test_decoder_create():
-    bout_decoder = decoder.BOUTDecoder()
+    bout_decoder = decoder.SimpleBOUTDecoder()
 
     assert isinstance(bout_decoder, BaseDecoder)
 
 
 def test_decoder_sim_complete(tmpdir):
 
-    bout_decoder = decoder.BOUTDecoder()
+    bout_decoder = decoder.SimpleBOUTDecoder()
     assert not bout_decoder.sim_complete({"run_dir": tmpdir})
 
     settings_file = BoutOptions()
@@ -29,7 +29,7 @@ def test_decoder_parse_sim_output_all_variables(tmpdir, monkeypatch):
 
     monkeypatch.setattr(decoder, "open_boutdataset", mock_open_boutdataset)
 
-    bout_decoder = decoder.BOUTDecoder()
+    bout_decoder = decoder.SimpleBOUTDecoder()
 
     data = bout_decoder.parse_sim_output({"run_dir": tmpdir})
 
@@ -44,7 +44,7 @@ def test_decoder_parse_sim_output_variable_list(tmpdir, monkeypatch):
 
     monkeypatch.setattr(decoder, "open_boutdataset", mock_open_boutdataset)
 
-    bout_decoder = decoder.BOUTDecoder(variables=["T"])
+    bout_decoder = decoder.SimpleBOUTDecoder(variables=["T"])
 
     data = bout_decoder.parse_sim_output({"run_dir": tmpdir})
 
