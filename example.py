@@ -8,9 +8,39 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
+
+class LogDataBOUTDecoder(boutvecma.BaseBOUTDecoder):
+    """Returns log(variable)"""
+
+    def __init__(self, target_filename=None, variables=None):
+        """
+        Parameters
+        ==========
+        variables: iterable or None
+            Iterable of variables to collect from the output. If None, return everything
+        """
+        super().__init__(target_filename=target_filename)
+
+        self.variables = variables
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info)
+
+        return {
+            variable: boutvecma.decoder.flatten_dataframe_for_JSON(
+                np.log(df[variable][-1, ...])
+            )
+            for variable in self.variables
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
 campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
-decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
+decoder = LogDataBOUTDecoder(variables=["T"])
 params = {
     "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
     "T:scale": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
@@ -21,7 +51,7 @@ params = {
 campaign.add_app("1D_conduction", params=params, encoder=encoder, decoder=decoder)
 
 vary = {
-    "conduction:chi": chaospy.LogUniform(np.log(1e-2), np.log(1e2)),
+    "conduction:chi": chaospy.Uniform(0.2, 4.0),
     "T:scale": chaospy.Uniform(0.5, 1.5),
 }
 
@@ -51,11 +81,12 @@ results = campaign.get_last_analysis()
 state_filename = os.path.join(campaign.campaign_dir, "campaign_state.json")
 campaign.save_state(state_filename)
 
+moment_plot_filename = os.path.join(f"{campaign.campaign_dir}", "moments.png")
+sobols_plot_filename = os.path.join(f"{campaign.campaign_dir}", "sobols_first.png")
+
 plt.figure()
-results.plot_moments(
-    "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/moments.png"
-)
+results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
 plt.figure()
-results.plot_sobols_first(
-    "T", xlabel=r"$\rho$", filename=f"{campaign.campaign_dir}/sobols_first.png"
-)
+results.plot_sobols_first("T", xlabel=r"$\rho$", filename=sobols_plot_filename)
+
+print(f"Results are in {moment_plot_filename} and {sobols_plot_filename}")
