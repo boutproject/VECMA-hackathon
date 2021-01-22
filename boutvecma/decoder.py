@@ -6,6 +6,7 @@ from xbout.load import open_boutdataset
 import inspect
 import re
 import copy
+import numpy as np
 
 
 def flatten_dataframe_for_JSON(df):
@@ -141,6 +142,33 @@ class SampleLocationBOUTDecoder(BaseBOUTDecoder):
                 df[variable.pop("variable")][variable]
             )
             for variable in samples
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
+class LogDataBOUTDecoder(BaseBOUTDecoder):
+    """Returns log(variable)"""
+
+    def __init__(self, target_filename=None, variables=None):
+        """
+        Parameters
+        ==========
+        variables: iterable or None
+            Iterable of variables to collect from the output. If None, return everything
+        """
+        super().__init__(target_filename=target_filename)
+
+        self.variables = variables
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info)
+
+        return {
+            variable: flatten_dataframe_for_JSON(np.log(df[variable][-1, ...]))
+            for variable in self.variables
         }
 
     @staticmethod

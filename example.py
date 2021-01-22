@@ -9,38 +9,9 @@ import time
 import matplotlib.pyplot as plt
 
 
-class LogDataBOUTDecoder(boutvecma.BaseBOUTDecoder):
-    """Returns log(variable)"""
-
-    def __init__(self, target_filename=None, variables=None):
-        """
-        Parameters
-        ==========
-        variables: iterable or None
-            Iterable of variables to collect from the output. If None, return everything
-        """
-        super().__init__(target_filename=target_filename)
-
-        self.variables = variables
-
-    def parse_sim_output(self, run_info=None, *args, **kwargs):
-        df = self.get_outputs(run_info)
-
-        return {
-            variable: boutvecma.decoder.flatten_dataframe_for_JSON(
-                np.log(df[variable][-1, ...])
-            )
-            for variable in self.variables
-        }
-
-    @staticmethod
-    def element_version():
-        return "0.1.0"
-
-
 campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
-decoder = LogDataBOUTDecoder(variables=["T"])
+decoder = boutvecma.LogDataBOUTDecoder(variables=["T"])
 params = {
     "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
     "T:scale": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
