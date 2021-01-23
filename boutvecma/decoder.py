@@ -7,6 +7,7 @@ import inspect
 import re
 import copy
 import numpy as np
+import xarray
 
 
 def flatten_dataframe_for_JSON(df):
@@ -193,7 +194,7 @@ class Blob2DDecoder(BaseBOUTDecoder):
     def com_index_position(self, n):
         size = n.shape
 
-        indices = {"x": np.zeros(size[0], dtype=int), "z": np.zeros(size[0], dtype=int)}
+        indices = {"x": xarray.DataArray(np.zeros(size[0], dtype=int), dims=("t")), "z": xarray.DataArray(np.zeros(size[0], dtype=int), dims=("t"))}
         for i in range(len(n.t)):
             data = n[i, :, :] - n[0, 0, 0]  # use corner cell rather than nmin
             ntot = np.sum(data[:, :])
@@ -214,17 +215,18 @@ class Blob2DDecoder(BaseBOUTDecoder):
         peak_position = self.position(df, peak_indices)
         peak_velocity = self.velocity(peak_position)
 
-        com_indices = self.com_index_position(df.n)
-        com_position = self.position(df, com_indices)
-        com_velocity = self.velocity(com_position)
+        # com_indices = self.com_index_position(df.n)
+        # com_position = self.position(df, com_indices)
+        # com_velocity = self.velocity(com_position)
 
         return {
-            "peak_x": peak_position[0].flatten().tolist(),
-            "peak_z": peak_position[1].flatten().tolist(),
-            "peak_v_x": peak_velocity[0].flatten().tolist(),
-            "peak_v_z": peak_velocity[1].flatten().tolist(),
-            "com_x": com_position[0].flatten().tolist(),
-            "com_z": com_position[1].flatten().tolist(),
-            "com_v_x": com_velocity[0].flatten().tolist(),
-            "com_v_z": com_velocity[1].flatten().tolist(),
+            "peak_x": flatten_dataframe_for_JSON(peak_position[0]),
+            "peak_z": flatten_dataframe_for_JSON(peak_position[1]),
+            "peak_v_x": flatten_dataframe_for_JSON(peak_velocity[0]),
+            "peak_v_z": flatten_dataframe_for_JSON(peak_velocity[1]),
+
+            # "com_x": com_position[0].flatten().tolist(),
+            # "com_z": com_position[1].flatten().tolist(),
+            # "com_v_x": com_velocity[0].flatten().tolist(),
+            # "com_v_z": com_velocity[1].flatten().tolist(),
         }

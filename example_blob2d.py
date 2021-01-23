@@ -7,8 +7,6 @@ import chaospy
 import os
 import numpy as np
 import time
-from dask.distributed import Client
-from dask_jobqueue import SLURMCluster
 import matplotlib.pyplot as plt
 
 
@@ -24,7 +22,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    campaign = uq.CampaignDask(name="Blob.")
+    campaign = uq.Campaign(name="Blob.")
     print(f"Running in {campaign.campaign_dir}")
     encoder = boutvecma.BOUTEncoder(template_input="models/blob2d/delta_1/BOUT.inp")
     decoder = boutvecma.decoder.Blob2DDecoder(use_peak=False)
@@ -41,9 +39,11 @@ if __name__ == "__main__":
     vary = {
         "model:Te0": chaospy.Uniform(4.0, 6.0),
         "model:n0": chaospy.Uniform(1.5e18, 2.5e18),
+        # "model:D_vort": chaospy.Uniform(1e-7, 1e-5),
+        # "model:D_n": chaospy.Uniform(1e-7, 1e-5),
     }
 
-    sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=2)
+    sampler = uq.sampling.SCSampler(vary=vary, polynomial_order=2)
     campaign.set_sampler(sampler)
 
     campaign.draw_samples()
@@ -52,35 +52,13 @@ if __name__ == "__main__":
 
     print(f"Created run directories: {run_dirs}")
 
-    if args.batch:
-        # Example of use on Viking
-        cluster = SLURMCluster(
-            job_extra=[
-                "--job-name=VVUQ",
-                "--account=PHYS-YPIRSE-2019",
-            ],
-            cores=1,
-            memory="1 GB",
-            processes=1,
-            walltime="00:10:00",
-            interface="ib0",
-        )
-        cluster.scale(16)
-        print(f"Job script:\n{cluster.job_script()}")
-        client = Client(cluster)
-    else:
-        client = Client(processes=True, threads_per_worker=1)
-
-    print(client)
-
     cmd = os.path.abspath("build/models/blob2d/blob2d")
 
     time_start = time.time()
     campaign.apply_for_each_run_dir(
-        uq.actions.ExecuteLocal(f"{cmd} -q -q -q -d .", interpret="mpirun -np 4"),
-        client,
-    )
-    client.close()
+        uq.actions.execute_slurm.ExecuteSLURM("slurm_template.sh", "TARGET_DIR"),
+        batch_size=16
+    ).start()
 
     time_end = time.time()
 
@@ -90,8 +68,10 @@ if __name__ == "__main__":
     campaign.save_state(state_filename)
     campaign.collate()
 
+    exit(0)
+
     campaign.apply_analysis(
-        uq.analysis.PCEAnalysis(
+        uq.analysis.SCAnalysis(
             sampler=sampler,
             qoi_cols=[
                 "peak_x",
