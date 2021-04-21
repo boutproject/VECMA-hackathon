@@ -58,6 +58,7 @@ class BaseBOUTDecoder(BaseDecoder, decoder_name="bout++-base"):
     def get_outputs(self, run_info):
         """Read the BOUT++ outputs into an xarray dataframe"""
         data_files = self._get_output_path(run_info, self.target_filename)
+        print(f"Reading {data_files}")
         return open_boutdataset(data_files, info=False)
 
     def get_restart_dict(self):
@@ -215,18 +216,17 @@ class Blob2DDecoder(BaseBOUTDecoder):
         peak_position = self.position(df, peak_indices)
         peak_velocity = self.velocity(peak_position)
 
-        # com_indices = self.com_index_position(df.n)
-        # com_position = self.position(df, com_indices)
-        # com_velocity = self.velocity(com_position)
+        com_indices = self.com_index_position(df.n)
+        com_position = self.position(df, com_indices)
+        com_velocity = self.velocity(com_position)
 
         return {
             "peak_x": flatten_dataframe_for_JSON(peak_position[0]),
             "peak_z": flatten_dataframe_for_JSON(peak_position[1]),
             "peak_v_x": flatten_dataframe_for_JSON(peak_velocity[0]),
             "peak_v_z": flatten_dataframe_for_JSON(peak_velocity[1]),
-
-            # "com_x": com_position[0].flatten().tolist(),
-            # "com_z": com_position[1].flatten().tolist(),
-            # "com_v_x": com_velocity[0].flatten().tolist(),
-            # "com_v_z": com_velocity[1].flatten().tolist(),
+            "com_x": flatten_dataframe_for_JSON(com_position[0]),
+            "com_z": flatten_dataframe_for_JSON(com_position[1]),
+            "com_v_x": flatten_dataframe_for_JSON(com_velocity[0]),
+            "com_v_z": flatten_dataframe_for_JSON(com_velocity[1]),
         }

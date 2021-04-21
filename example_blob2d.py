@@ -39,11 +39,11 @@ if __name__ == "__main__":
     vary = {
         "model:Te0": chaospy.Uniform(4.0, 6.0),
         "model:n0": chaospy.Uniform(1.5e18, 2.5e18),
-        # "model:D_vort": chaospy.Uniform(1e-7, 1e-5),
-        # "model:D_n": chaospy.Uniform(1e-7, 1e-5),
+        "model:D_vort": chaospy.Uniform(1e-7, 1e-5),
+        "model:D_n": chaospy.Uniform(1e-7, 1e-5),
     }
 
-    sampler = uq.sampling.SCSampler(vary=vary, polynomial_order=2)
+    sampler = uq.sampling.SCSampler(vary=vary, polynomial_order=3)
     campaign.set_sampler(sampler)
 
     campaign.draw_samples()
@@ -78,10 +78,10 @@ if __name__ == "__main__":
                 "peak_z",
                 "peak_v_x",
                 "peak_v_z",
-                "com_x",
-                "com_z",
-                "com_v_x",
-                "com_v_z",
+                # "com_x",
+                # "com_z",
+                # "com_v_x",
+                # "com_v_z",
             ],
         )
     )
