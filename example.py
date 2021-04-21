@@ -8,8 +8,6 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-
-campaign = uq.Campaign(name="Conduction.")
 encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
 decoder = boutvecma.LogDataBOUTDecoder(variables=["T"])
 params = {
@@ -18,8 +16,9 @@ params = {
     "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
     "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
-
-campaign.add_app("1D_conduction", params=params, encoder=encoder, decoder=decoder)
+actions = uq.actions.local_execute(encoder, os.path.abspath("build/models/conduction/conduction -d . |& tee run.log"), decoder)
+campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
+# campaign.set_app("1D_conduction")
 
 vary = {
     "conduction:chi": chaospy.Uniform(0.2, 4.0),
@@ -29,21 +28,11 @@ vary = {
 sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)
 campaign.set_sampler(sampler)
 
-campaign.draw_samples()
-
-run_dirs = campaign.populate_runs_dir()
-
-print(f"Created run directories: {run_dirs}")
-
 time_start = time.time()
-campaign.apply_for_each_run_dir(
-    uq.actions.ExecuteLocal(os.path.abspath("build/models/conduction/conduction -d ."))
-)
+campaign.execute().collate()
 time_end = time.time()
 
 print(f"Finished, took {time_end - time_start}")
-
-campaign.collate()
 
 campaign.apply_analysis(uq.analysis.PCEAnalysis(sampler=sampler, qoi_cols=["T"]))
 
