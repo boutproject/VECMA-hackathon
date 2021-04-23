@@ -121,18 +121,21 @@ campaign.execute().collate()
 #results = campaign.analyse(qoi_cols=["T"])
 
 # Create an analysis class and run the analysis.
-print("here")
 analysis = uq.analysis.SCAnalysis(sampler=sampler, qoi_cols=["T"])
-print("here")
 campaign.apply_analysis(analysis)
-print(type(analysis))
-print(type(campaign))
 plot_grid_2D(0,"grid0.png")
 
-for i in np.arange(1,100):
+i = 0
+sobols_error = 1e6
+error_vs_its = []
+samples_vs_its = []
+while sobols_error > 1e-8:
+    i += 1
     refine_sampling_plan(1)
     campaign.apply_analysis(analysis)
     results = campaign.last_analysis
+    samples_vs_its.append(sampler.n_samples)
+
     plot_grid_2D(i,"grid"+str(i)+".png")
     moment_plot_filename = os.path.join(f"{campaign.campaign_dir}", "moments"+str(i)+".png")
     sobols_plot_filename = os.path.join(f"{campaign.campaign_dir}", "sobols_first"+str(i)+".png")
@@ -146,6 +149,58 @@ for i in np.arange(1,100):
     plt.savefig("sobols"+str(i)+".png")
     plt.figure()
     custom_moments_plot(results,moment_plot_filename,i)
+
+    # Prevent overwrite of old fig
+    plt.figure('stat_conv').clear()
+    analysis.plot_stat_convergence()
+    plt.savefig("stat_convergence.png")
+
+    sobols = analysis.get_sobol_indices("T")
+
+    if i > 1:
+        sobols_error = 0
+        count = 0
+        for j in sobols:
+            count += 1
+###            print(j)
+###            print(sobols[j])
+###            print(sobols_last[j])
+###            print(sobols[j]-sobols_last[j])
+###            print(abs(sobols[j]-sobols_last[j]))
+###            print(sum(abs(sobols[j]-sobols_last[j])))
+            sobols_error += np.mean(abs(sobols[j]-sobols_last[j]))
+        sobols_error = sobols_error/count
+        error_vs_its.append(sobols_error)
+        print(str(i)+" "+str(sobols_error))
+    sobols_last = sobols
+
+    plt.figure()
+    plt.plot(error_vs_its)
+    plt.xlabel("Iterations")
+    plt.ylabel("Summed error")
+    plt.savefig("error_vs_iterations.png")
+
+    plt.figure()
+    plt.semilogy(error_vs_its)
+    plt.xlabel("Iterations")
+    plt.ylabel("Summed error")
+    plt.savefig("error_vs_iterations_log.png")
+
+    plt.figure()
+    plt.plot(samples_vs_its)
+    plt.xlabel("Iterations")
+    plt.ylabel("Samples")
+    plt.savefig("samples_vs_iterations.png")
+
+    plt.figure()
+    plt.semilogy(samples_vs_its)
+    plt.xlabel("Iterations")
+    plt.ylabel("Samples")
+    plt.savefig("samples_vs_iterations_log.png")
+
+    if i > 100:
+        break
+
     #print(results.sobols_second("T"))
     #plt.figure()
     #results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
@@ -192,6 +247,30 @@ ax.set_ylabel("T")
 ax.set_xlabel(r"$\rho$")
 ax.legend()
 fig.savefig(moment_plot_filename)
+
+plt.figure()
+plt.plot(error_vs_its)
+plt.xlabel("Iterations")
+plt.ylabel("Summed error")
+plt.savefig("error_vs_iterations.png")
+
+plt.figure()
+plt.semilogy(error_vs_its)
+plt.xlabel("Iterations")
+plt.ylabel("Summed error")
+plt.savefig("error_vs_iterations_log.png")
+
+plt.figure()
+plt.plot(samples_vs_its)
+plt.xlabel("Iterations")
+plt.ylabel("Samples")
+plt.savefig("samples_vs_iterations.png")
+
+plt.figure()
+plt.semilogy(samples_vs_its)
+plt.xlabel("Iterations")
+plt.ylabel("Samples")
+plt.savefig("samples_vs_iterations_log.png")
 
 ###plt.figure()
 ###results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
