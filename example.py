@@ -28,6 +28,9 @@ vary = {
 sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)
 campaign.set_sampler(sampler)
 
+campaign.draw_samples()
+print(f"Code will be evaluated {sampler.n_samples} times")
+
 time_start = time.time()
 campaign.execute().collate()
 time_end = time.time()
