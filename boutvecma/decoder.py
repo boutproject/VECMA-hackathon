@@ -6,6 +6,7 @@ from xbout.load import open_boutdataset
 import inspect
 import re
 import copy
+import numpy as np
 
 
 def flatten_dataframe_for_JSON(df):
@@ -146,3 +147,84 @@ class SampleLocationBOUTDecoder(BaseBOUTDecoder):
     @staticmethod
     def element_version():
         return "0.1.0"
+
+
+class LogDataBOUTDecoder(BaseBOUTDecoder):
+    """Returns log(variable)"""
+
+    def __init__(self, target_filename=None, variables=None):
+        """
+        Parameters
+        ==========
+        variables: iterable or None
+            Iterable of variables to collect from the output. If None, return everything
+        """
+        super().__init__(target_filename=target_filename)
+
+        self.variables = variables
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info)
+
+        return {
+            variable: flatten_dataframe_for_JSON(np.log(df[variable][-1, ...]))
+            for variable in self.variables
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
+class Blob2DDecoder(BaseBOUTDecoder):
+    def __init__(self, use_peak=True):
+        super().__init__()
+        self.use_peak = use_peak
+
+    def peak_index_position(self, n):
+        return {k: v.compute() for k, v in n.argmax(dim=("x", "z")).items()}
+
+    def position(self, df, indices):
+        return df.x[indices["x"]], df.z[indices["z"]]
+
+    def velocity(self, position):
+        return position[0].differentiate("t"), position[1].differentiate("t")
+
+    def com_index_position(self, n):
+        size = n.shape
+
+        indices = {"x": np.zeros(size[0], dtype=int), "z": np.zeros(size[0], dtype=int)}
+        for i in range(len(n.t)):
+            data = n[i, :, :] - n[0, 0, 0]  # use corner cell rather than nmin
+            ntot = np.sum(data[:, :])
+
+            indices["z"][i] = int(
+                np.sum(np.sum(data[:, :], axis=0) * (np.arange(size[2]))) // ntot
+            )
+            indices["x"][i] = int(
+                np.sum(np.sum(data[:, :], axis=1) * (np.arange(size[1]))) // ntot
+            )
+
+        return indices
+
+    def parse_sim_output(self, run_info):
+        df = self.get_outputs(run_info).squeeze()
+
+        peak_indices = self.peak_index_position(df.n)
+        peak_position = self.position(df, peak_indices)
+        peak_velocity = self.velocity(peak_position)
+
+        com_indices = self.com_index_position(df.n)
+        com_position = self.position(df, com_indices)
+        com_velocity = self.velocity(com_position)
+
+        return {
+            "peak_x": peak_position[0].flatten().tolist(),
+            "peak_z": peak_position[1].flatten().tolist(),
+            "peak_v_x": peak_velocity[0].flatten().tolist(),
+            "peak_v_z": peak_velocity[1].flatten().tolist(),
+            "com_x": com_position[0].flatten().tolist(),
+            "com_z": com_position[1].flatten().tolist(),
+            "com_v_x": com_velocity[0].flatten().tolist(),
+            "com_v_z": com_velocity[1].flatten().tolist(),
+        }

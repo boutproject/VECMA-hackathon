@@ -15,7 +15,7 @@ import time
 import matplotlib.pyplot as plt
 
 campaign = uq.Campaign(name="Conduction.")
-encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
+encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
 
 sample_locations = [
     {"variable": "T", "output_name": "T_centre", "x": 0, "y": 50, "z": 0},
@@ -30,7 +30,14 @@ params = {
     "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
 
-campaign.add_app("1D_conduction", params=params, encoder=encoder, decoder=decoder)
+actions = uq.actions.local_execute(
+    encoder,
+    os.path.abspath(
+        "../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
+    ),
+    decoder,
+)
+campaign = uq.Campaign(name="Time.", actions=actions, params=params)
 
 vary = {
     "T:scale": chaospy.Uniform(0.5, 1.5),
@@ -40,23 +47,11 @@ vary = {
 sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)
 campaign.set_sampler(sampler)
 
-campaign.draw_samples()
-
-run_dirs = campaign.populate_runs_dir()
-
-print(f"Created run directories: {run_dirs}")
-
 time_start = time.time()
-campaign.apply_for_each_run_dir(
-    uq.actions.ExecuteLocal(
-        os.path.abspath("build/models/conduction/conduction -q -q -q -q -d .")
-    )
-)
+campaign.execute().collate()
 time_end = time.time()
 
 print(f"Finished, took {time_end - time_start}")
-
-campaign.collate()
 
 campaign.apply_analysis(
     uq.analysis.PCEAnalysis(sampler=sampler, qoi_cols=["T_centre", "T_edge"])
