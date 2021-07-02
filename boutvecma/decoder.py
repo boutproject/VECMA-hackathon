@@ -1,6 +1,5 @@
 import os
 
-from easyvvuq.decoders import BaseDecoder
 from boutdata.data import BoutOptionsFile
 from xbout.load import open_boutdataset
 import inspect
@@ -14,9 +13,7 @@ def flatten_dataframe_for_JSON(df):
     return df.values.flatten().tolist()
 
 
-class BaseBOUTDecoder(BaseDecoder, decoder_name="bout++-base"):
-    def __init_subclass__(cls):
-        super().__init_subclass__(cls.__name__)
+class BaseBOUTDecoder():
 
     def __init__(self, target_filename=None):
         """
