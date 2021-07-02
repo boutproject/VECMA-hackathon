@@ -8,7 +8,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
+encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
 decoder = boutvecma.LogDataBOUTDecoder(variables=["T"])
 params = {
     "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
@@ -16,7 +16,7 @@ params = {
     "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
     "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
-actions = uq.actions.local_execute(encoder, os.path.abspath("build/models/conduction/conduction -d . |& tee run.log"), decoder)
+actions = uq.actions.local_execute(encoder, os.path.abspath("../../build/models/conduction/conduction -d . |& tee run.log"), decoder)
 campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
 # campaign.set_app("1D_conduction")
 

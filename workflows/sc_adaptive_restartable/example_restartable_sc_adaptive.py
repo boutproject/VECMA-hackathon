@@ -82,7 +82,7 @@ def custom_moments_plot(results, filename, i):
 
 
 def first_time_setup():
-    encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
+    encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
     # decoder = boutvecma.LogDataBOUTDecoder(variables=["T"])
     decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
     params = {
@@ -99,7 +99,7 @@ def first_time_setup():
     actions = uq.actions.local_execute(
         encoder,
         os.path.abspath(
-            "build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
+            "../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
         ),
         decoder,
         root=".",

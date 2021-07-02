@@ -15,7 +15,7 @@ import time
 import matplotlib.pyplot as plt
 
 campaign = uq.Campaign(name="Conduction.")
-encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
+encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
 
 sample_locations = [
     {"variable": "T", "output_name": "T_centre", "x": 0, "y": 50, "z": 0},
@@ -33,7 +33,7 @@ params = {
 actions = uq.actions.local_execute(
     encoder,
     os.path.abspath(
-        "build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
+        "../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
     ),
     decoder,
 )
