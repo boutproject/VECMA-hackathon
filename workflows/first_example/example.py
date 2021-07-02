@@ -16,7 +16,7 @@ params = {
     "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
     "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
-actions = uq.actions.local_execute(encoder, os.path.abspath("../../build/models/conduction/conduction -d . |& tee run.log"), decoder)
+actions = uq.actions.local_execute(encoder, os.path.abspath("../../build/models/conduction/conduction -d . -q -q -q -q |& tee run.log"), decoder)
 campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
 # campaign.set_app("1D_conduction")
 
@@ -28,15 +28,16 @@ vary = {
 sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)
 campaign.set_sampler(sampler)
 
-campaign.draw_samples()
 print(f"Code will be evaluated {sampler.n_samples} times")
 
 time_start = time.time()
-campaign.execute().collate()
+campaign.execute().collate(progress_bar=True)
 time_end = time.time()
 
 print(f"Finished, took {time_end - time_start}")
 
+results_df = campaign.get_collation_result()
+print(results_df)
 results = campaign.analyse(qoi_cols=["T"])
 
 moment_plot_filename = os.path.join(f"{campaign.campaign_dir}", "moments.png")
@@ -45,7 +46,8 @@ distribution_plot_filename = os.path.join(
     f"{campaign.campaign_dir}", "distribution.png"
 )
 
-campaign.save_state(f"{campaign.campaign_dir}/state.json")
+# Campaign no longer as attribute save_state
+#campaign.save_state(f"{campaign.campaign_dir}/state.json")
 
 fig, ax = plt.subplots()
 xvalues = np.arange(len(results.describe("T", 'mean')))
@@ -59,7 +61,7 @@ try:
 except RuntimeError:
     pass
 ax.grid(True)
-ax.set_ylabel("T")
+ax.set_ylabel(r"$\log(T)$")
 ax.set_xlabel(r"$\rho$")
 ax.legend()
 fig.savefig(moment_plot_filename)
