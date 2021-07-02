@@ -6,6 +6,9 @@ import chaospy
 import os
 import numpy as np
 import time
+import matplotlib
+# Do not open figures:
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -54,6 +57,7 @@ def plot_grid_2D(i,filename="out.pdf"):
     
     plt.tight_layout()
     plt.savefig(filename)
+    plt.close()
 
 def custom_moments_plot(results,filename,i):
     fig, ax = plt.subplots()
@@ -73,8 +77,9 @@ def custom_moments_plot(results,filename,i):
     ax.set_title("iteration "+str(i))
     ax.legend()
     fig.savefig(filename)
+    plt.close()
 
-encoder = boutvecma.BOUTEncoder(template_input="models/conduction/data/BOUT.inp")
+encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
 # decoder = boutvecma.LogDataBOUTDecoder(variables=["T"])
 decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
 params = {
@@ -86,13 +91,11 @@ params = {
 actions = uq.actions.local_execute(
     encoder,
     os.path.abspath(
-        "build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
+        "../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
     ),
     decoder,
 )
 campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
-print(type(campaign))
-# campaign.set_app("1D_conduction")
 
 vary = {
     "conduction:chi": chaospy.Uniform(0.2, 4.0),
@@ -129,7 +132,7 @@ i = 0
 sobols_error = 1e6
 error_vs_its = []
 samples_vs_its = []
-while sobols_error > 1e-8:
+while sobols_error > 1e-2:
     i += 1
     refine_sampling_plan(1)
     campaign.apply_analysis(analysis)
@@ -147,13 +150,17 @@ while sobols_error > 1e-8:
     results.plot_sobols_first("T", ylabel="iteration"+str(i), xlabel=r"$\rho$", filename=sobols_plot_filename)
     plt.ylim(0,1)
     plt.savefig("sobols"+str(i)+".png")
+    plt.close()
+
     plt.figure()
     custom_moments_plot(results,moment_plot_filename,i)
+    plt.close()
 
     # Prevent overwrite of old fig
     plt.figure('stat_conv').clear()
     analysis.plot_stat_convergence()
     plt.savefig("stat_convergence.png")
+    plt.close()
 
     sobols = analysis.get_sobol_indices("T")
 
@@ -179,24 +186,28 @@ while sobols_error > 1e-8:
     plt.xlabel("Iterations")
     plt.ylabel("Summed error")
     plt.savefig("error_vs_iterations.png")
+    plt.close()
 
     plt.figure()
     plt.semilogy(error_vs_its)
     plt.xlabel("Iterations")
     plt.ylabel("Summed error")
     plt.savefig("error_vs_iterations_log.png")
+    plt.close()
 
     plt.figure()
     plt.plot(samples_vs_its)
     plt.xlabel("Iterations")
     plt.ylabel("Samples")
     plt.savefig("samples_vs_iterations.png")
+    plt.close()
 
     plt.figure()
     plt.semilogy(samples_vs_its)
     plt.xlabel("Iterations")
     plt.ylabel("Samples")
     plt.savefig("samples_vs_iterations_log.png")
+    plt.close()
 
     if i > 100:
         break
@@ -247,30 +258,35 @@ ax.set_ylabel("T")
 ax.set_xlabel(r"$\rho$")
 ax.legend()
 fig.savefig(moment_plot_filename)
+plt.close()
 
 plt.figure()
 plt.plot(error_vs_its)
 plt.xlabel("Iterations")
 plt.ylabel("Summed error")
 plt.savefig("error_vs_iterations.png")
+plt.close()
 
 plt.figure()
 plt.semilogy(error_vs_its)
 plt.xlabel("Iterations")
 plt.ylabel("Summed error")
 plt.savefig("error_vs_iterations_log.png")
+plt.close()
 
 plt.figure()
 plt.plot(samples_vs_its)
 plt.xlabel("Iterations")
 plt.ylabel("Samples")
 plt.savefig("samples_vs_iterations.png")
+plt.close()
 
 plt.figure()
 plt.semilogy(samples_vs_its)
 plt.xlabel("Iterations")
 plt.ylabel("Samples")
 plt.savefig("samples_vs_iterations_log.png")
+plt.close()
 
 ###plt.figure()
 ###results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
