@@ -31,12 +31,6 @@ def refine_sampling_plan(number_of_refinements):
         sampler.look_ahead(analysis.l_norm)
 
         # run the ensemble
-###        campaign.draw_samples()
-###        campaign.populate_runs_dir()
-###        campaign.apply_for_each_run_dir(
-###            uq.actions.ExecuteLocal(cmd, interpret="python3")
-###        )
-###        campaign.collate()
         campaign.execute().collate()
 
         # accept one of the multi indices of the new admissible set
@@ -80,7 +74,6 @@ def custom_moments_plot(results,filename,i):
     plt.close()
 
 encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
-# decoder = boutvecma.LogDataBOUTDecoder(variables=["T"])
 decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
 params = {
     "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
@@ -169,12 +162,6 @@ while sobols_error > 1e-2:
         count = 0
         for j in sobols:
             count += 1
-###            print(j)
-###            print(sobols[j])
-###            print(sobols_last[j])
-###            print(sobols[j]-sobols_last[j])
-###            print(abs(sobols[j]-sobols_last[j]))
-###            print(sum(abs(sobols[j]-sobols_last[j])))
             sobols_error += np.mean(abs(sobols[j]-sobols_last[j]))
         sobols_error = sobols_error/count
         error_vs_its.append(sobols_error)
