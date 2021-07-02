@@ -1,10 +1,9 @@
 import os
 from copy import deepcopy
-from easyvvuq.encoders import BaseEncoder
 from boutdata.data import BoutOptions, BoutOptionsFile
 
 
-class BOUTEncoder(BaseEncoder, encoder_name="bout++"):
+class BOUTEncoder():
     def __init__(self, template_input=None):
         """Read an existing BOUT.inp file to use as a template.
         If no input is given, an empty set of options will be created
