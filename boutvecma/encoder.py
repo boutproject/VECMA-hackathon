@@ -3,7 +3,7 @@ from copy import deepcopy
 from boutdata.data import BoutOptions, BoutOptionsFile
 
 
-class BOUTEncoder():
+class BOUTEncoder:
     def __init__(self, template_input=None):
         """Read an existing BOUT.inp file to use as a template.
         If no input is given, an empty set of options will be created
@@ -54,9 +54,10 @@ class BOUTEncoder():
         return "0.1"
 
     def get_restart_dict(self):
-        return {'template_input':self.template_input}
+        return {"template_input": self.template_input}
 
-class BOUTExpEncoder():
+
+class BOUTExpEncoder:
     def __init__(self, template_input=None):
         """Read an existing BOUT.inp file to use as a template.
         If no input is given, an empty set of options will be created
@@ -94,7 +95,7 @@ class BOUTExpEncoder():
             options = deepcopy(self._options)
 
             for key, value in params.items():
-                options[key] = 10**value
+                options[key] = 10 ** value
         else:
             options = self._options
 
@@ -107,4 +108,4 @@ class BOUTExpEncoder():
         return "0.1"
 
     def get_restart_dict(self):
-        return {'template_input':self.template_input}
+        return {"template_input": self.template_input}

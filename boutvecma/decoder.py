@@ -13,8 +13,7 @@ def flatten_dataframe_for_JSON(df):
     return df.values.flatten().tolist()
 
 
-class BaseBOUTDecoder():
-
+class BaseBOUTDecoder:
     def __init__(self, target_filename=None):
         """
         Parameters
@@ -172,6 +171,7 @@ class LogDataBOUTDecoder(BaseBOUTDecoder):
     def element_version():
         return "0.1.0"
 
+
 class AbsLogErrorBOUTDecoder(BaseBOUTDecoder):
     """Returns log(variable)"""
 
@@ -192,13 +192,16 @@ class AbsLogErrorBOUTDecoder(BaseBOUTDecoder):
         df = self.get_outputs(run_info)
 
         return {
-            variable: flatten_dataframe_for_JSON(np.log(np.abs(df[variable][-1,0,50,0]-self.error_value)))
+            variable: flatten_dataframe_for_JSON(
+                np.log(np.abs(df[variable][-1, 0, 50, 0] - self.error_value))
+            )
             for variable in self.variables
         }
 
     @staticmethod
     def element_version():
         return "0.1.0"
+
 
 class AbsErrorBOUTDecoder(BaseBOUTDecoder):
     """Returns log(variable)"""
@@ -219,13 +222,16 @@ class AbsErrorBOUTDecoder(BaseBOUTDecoder):
         df = self.get_outputs(run_info)
 
         return {
-            variable: flatten_dataframe_for_JSON(np.abs(df[variable][-1,0,50,0]-0.2810848142553153))
+            variable: flatten_dataframe_for_JSON(
+                np.abs(df[variable][-1, 0, 50, 0] - 0.2810848142553153)
+            )
             for variable in self.variables
         }
 
     @staticmethod
     def element_version():
         return "0.1.0"
+
 
 class Blob2DDecoder(BaseBOUTDecoder):
     def __init__(self, use_peak=True):
