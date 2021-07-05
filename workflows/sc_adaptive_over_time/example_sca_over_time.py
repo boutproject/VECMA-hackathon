@@ -155,27 +155,27 @@ while sobols_error > 1e-3:
 
     plot_grid_2D(i, "grid" + str(i) + ".png")
     moment_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "moments_centre" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"moments_centre_{i}.png"
     )
     moment_edge_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "moments_edge" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"moments_edge_{i}.png"
     )
     sobols_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "sobols_first_centre" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"sobols_first_centre_{i}.png"
     )
     sobols_edge_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "sobols_first_edge" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"sobols_first_edge_{i}.png"
     )
     sobols_second_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "sobols_second" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"sobols_second_{i}.png"
     )
     distribution_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "distribution" + str(i) + ".png"
+        f"{campaign.campaign_dir}", "distribution_{i}.png"
     )
     plt.figure()
     results.plot_sobols_first(
         "T_centre",
-        ylabel="iteration" + str(i),
+        ylabel=f"iteration {i}",
         xlabel=r"$t$",
         filename=sobols_plot_filename,
     )
@@ -186,7 +186,7 @@ while sobols_error > 1e-3:
     plt.figure()
     results.plot_sobols_first(
         "T_edge",
-        ylabel="iteration" + str(i),
+        ylabel=f"iteration {i}",
         xlabel=r"$t$",
         filename=sobols_edge_plot_filename,
     )
@@ -215,7 +215,6 @@ while sobols_error > 1e-3:
             sobols_error += np.mean(abs(sobols[j] - sobols_last[j]))
         sobols_error = sobols_error / count
         error_vs_its.append(sobols_error)
-        print(str(i) + " " + str(sobols_error))
     sobols_last = sobols
 
     plt.figure()
