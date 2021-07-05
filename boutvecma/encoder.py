@@ -58,6 +58,10 @@ class BOUTEncoder:
 
 
 class BOUTExpEncoder:
+    """Exponential encoder for BOUT++. For a given variable v, this writes 10^v
+    into the BOUT++ input file.
+    """
+
     def __init__(self, template_input=None):
         """Read an existing BOUT.inp file to use as a template.
         If no input is given, an empty set of options will be created
