@@ -1,4 +1,11 @@
 __all__ = ["decoder", "encoder"]
 
-from .decoder import BaseBOUTDecoder, SimpleBOUTDecoder, SampleLocationBOUTDecoder, LogDataBOUTDecoder
-from .encoder import BOUTEncoder
+from .decoder import (
+    BaseBOUTDecoder,
+    SimpleBOUTDecoder,
+    SampleLocationBOUTDecoder,
+    LogDataBOUTDecoder,
+    AbsErrorBOUTDecoder,
+    AbsLogErrorBOUTDecoder,
+)
+from .encoder import BOUTEncoder, BOUTExpEncoder

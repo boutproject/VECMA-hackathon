@@ -16,7 +16,13 @@ params = {
     "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
     "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
-actions = uq.actions.local_execute(encoder, os.path.abspath("../../build/models/conduction/conduction -d . -q -q -q -q |& tee run.log"), decoder)
+actions = uq.actions.local_execute(
+    encoder,
+    os.path.abspath(
+        "../../build/models/conduction/conduction -d . -q -q -q -q |& tee run.log"
+    ),
+    decoder,
+)
 campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
 # campaign.set_app("1D_conduction")
 
@@ -47,17 +53,21 @@ distribution_plot_filename = os.path.join(
 )
 
 # Campaign no longer as attribute save_state
-#campaign.save_state(f"{campaign.campaign_dir}/state.json")
+# campaign.save_state(f"{campaign.campaign_dir}/state.json")
 
 fig, ax = plt.subplots()
-xvalues = np.arange(len(results.describe("T", 'mean')))
-ax.fill_between(xvalues, results.describe("T", 'mean') -
-                results.describe("T", 'std'), results.describe("T", 'mean') +
-                results.describe("T", 'std'), label='std', alpha=0.2)
-ax.plot(xvalues, results.describe("T", 'mean'), label='mean')
+xvalues = np.arange(len(results.describe("T", "mean")))
+ax.fill_between(
+    xvalues,
+    results.describe("T", "mean") - results.describe("T", "std"),
+    results.describe("T", "mean") + results.describe("T", "std"),
+    label="std",
+    alpha=0.2,
+)
+ax.plot(xvalues, results.describe("T", "mean"), label="mean")
 try:
-    ax.plot(xvalues, results.describe("T", '1%'), '--', label='1%', color='black')
-    ax.plot(xvalues, results.describe("T", '99%'), '--', label='99%', color='black')
+    ax.plot(xvalues, results.describe("T", "1%"), "--", label="1%", color="black")
+    ax.plot(xvalues, results.describe("T", "99%"), "--", label="99%", color="black")
 except RuntimeError:
     pass
 ax.grid(True)
@@ -69,6 +79,4 @@ fig.savefig(moment_plot_filename)
 plt.figure()
 results.plot_sobols_first("T", xlabel=r"$\rho$", filename=sobols_plot_filename)
 
-print(
-    f"Results are in:\n\t{moment_plot_filename}\n\t{sobols_plot_filename}"
-)
+print(f"Results are in:\n\t{moment_plot_filename}\n\t{sobols_plot_filename}")

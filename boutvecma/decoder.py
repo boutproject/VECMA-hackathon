@@ -13,8 +13,7 @@ def flatten_dataframe_for_JSON(df):
     return df.values.flatten().tolist()
 
 
-class BaseBOUTDecoder():
-
+class BaseBOUTDecoder:
     def __init__(self, target_filename=None):
         """
         Parameters
@@ -165,6 +164,67 @@ class LogDataBOUTDecoder(BaseBOUTDecoder):
 
         return {
             variable: flatten_dataframe_for_JSON(np.log(df[variable][-1, ...]))
+            for variable in self.variables
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
+class AbsLogErrorBOUTDecoder(BaseBOUTDecoder):
+    """Returns log(variable)"""
+
+    def __init__(self, target_filename=None, variables=None, error_value=None):
+        """
+        Parameters
+        ==========
+        variables: iterable or None
+            Iterable of variables to collect from the output. If None, return everything
+        """
+
+        super().__init__(target_filename=target_filename)
+
+        self.variables = variables
+        self.error_value = error_value
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info)
+
+        return {
+            variable: flatten_dataframe_for_JSON(
+                np.log(np.abs(df[variable][-1, 0, 50, 0] - self.error_value))
+            )
+            for variable in self.variables
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
+class AbsErrorBOUTDecoder(BaseBOUTDecoder):
+    """Returns log(variable)"""
+
+    def __init__(self, target_filename=None, variables=None):
+        """
+        Parameters
+        ==========
+        variables: iterable or None
+            Iterable of variables to collect from the output. If None, return everything
+        """
+
+        super().__init__(target_filename=target_filename)
+
+        self.variables = variables
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info)
+
+        return {
+            variable: flatten_dataframe_for_JSON(
+                np.abs(df[variable][-1, 0, 50, 0] - 0.2810848142553153)
+            )
             for variable in self.variables
         }
 

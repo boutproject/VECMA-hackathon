@@ -11,6 +11,67 @@ import matplotlib
 # Do not open figures:
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors  # palette and co.
+
+
+def rainbow_line(plt, g2, abscissa, colorvec, cb_title, axis=0):
+    jet = cm = plt.get_cmap("jet")
+    cNorm = colors.Normalize(vmin=colorvec[0], vmax=colorvec[-1])
+    scalarMap = matplotlib.cm.ScalarMappable(norm=cNorm, cmap=jet)
+    for ic in np.arange(0, np.size(colorvec))[::-1]:
+        colorVal = scalarMap.to_rgba(colorvec[ic])
+        colorText = "color: (%4.2f,%4.2f,%4.2f)" % (
+            colorVal[0],
+            colorVal[1],
+            colorVal[2],
+        )
+        if axis == 0:
+            plt.plot(abscissa, g2[:, ic], color=colorVal)
+        else:
+            plt.plot(abscissa, g2[ic, :], color=colorVal)
+
+    # fake up the array of the scalar mappable. Urgh...
+    scalarMap._A = []
+    cb = plt.colorbar(scalarMap)
+    cb.set_label(cb_title, labelpad=-1)
+
+
+# Do one run with atol=-15 to find value to use as offset in error decoder
+encoder = boutvecma.BOUTExpEncoder(
+    template_input="../../../models/conduction/data/BOUT.inp"
+)
+decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
+params = {
+    "solver:atol": {"type": "float", "min": -15, "max": 0.0, "default": -15},
+}
+actions = uq.actions.local_execute(
+    encoder,
+    os.path.abspath(
+        "../../../build/models/conduction/conduction -d . -q -q -q -q |& tee run.log"
+    ),
+    decoder,
+)
+campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
+
+vary = {
+    "solver:atol": chaospy.Uniform(-16, -14),
+}
+
+pord = 0
+sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=pord)
+campaign.set_sampler(sampler)
+
+print(f"Initial code evaluation: {sampler.n_samples} times")
+
+time_start = time.time()
+campaign.execute().collate(progress_bar=True)
+time_end = time.time()
+
+print(f"Finished initial step, took {time_end - time_start}")
+
+df = campaign.get_collation_result()
+
+# Offset value is df["T"][50], temperature at centre of domain
 
 
 def refine_sampling_plan(number_of_refinements):
@@ -85,34 +146,31 @@ def custom_moments_plot(results, filename, i):
     plt.close()
 
 
-encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
-decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
+# Begin UQ loop:
+encoder = boutvecma.BOUTExpEncoder(
+    template_input="../../../models/conduction/data/BOUT.inp"
+)
+decoder = boutvecma.AbsLogErrorBOUTDecoder(
+    variables=["T"], error_value=float(df["T"][50])
+)
+
 params = {
-    "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
-    "T:scale": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
-    "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
-    "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
+    "solver:atol": {"type": "float", "min": -15, "max": 0.0, "default": -15},
+    "solver:rtol": {"type": "float", "min": -15, "max": 0.0, "default": -15},
 }
 actions = uq.actions.local_execute(
     encoder,
     os.path.abspath(
-        "../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
+        "../../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
     ),
     decoder,
 )
 campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
 
 vary = {
-    "conduction:chi": chaospy.Uniform(0.2, 4.0),
-    # "conduction:chi": chaospy.LogUniform(0.2, 4.0),
-    "T:scale": chaospy.Uniform(0.5, 1.5),
-    "T:gauss_width": chaospy.Uniform(0.5, 1.5),
-    "T:gauss_centre": chaospy.Uniform(0.5 * np.pi, 1.5 * np.pi),
+    "solver:atol": chaospy.Uniform(-14, 0),
+    "solver:rtol": chaospy.Uniform(-14, 0),
 }
-
-# sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=3)  # , rule="c")
-# sampler = uq.sampling.PCESampler(vary=vary, polynomial_order=[1,1,1])#, rule="c")
-# sampler = uq.sampling.SCSampler(vary=vary, polynomial_order=3)#, rule="c")
 
 sampler = uq.sampling.SCSampler(
     vary=vary,
@@ -125,30 +183,27 @@ sampler = uq.sampling.SCSampler(
 )
 campaign.set_sampler(sampler)
 
-print(f"Computing {sampler.n_samples} samples")
+print(f"Code will be evaluated {sampler.n_samples} times")
 
 time_start = time.time()
-campaign.execute().collate()
-
-# results = campaign.analyse(qoi_cols=["T"])
+campaign.execute().collate(progress_bar=True)
 
 # Create an analysis class and run the analysis.
 analysis = uq.analysis.SCAnalysis(sampler=sampler, qoi_cols=["T"])
 campaign.apply_analysis(analysis)
-plot_grid_2D(0, "grid0.png")
+# plot_grid_2D(0,"grid0.png")
 
 i = 0
 sobols_error = 1e6
 error_vs_its = []
 samples_vs_its = []
-while sobols_error > 1e-2:
+while sobols_error > 1e-3:
     i += 1
     refine_sampling_plan(1)
     campaign.apply_analysis(analysis)
     results = campaign.last_analysis
     samples_vs_its.append(sampler.n_samples)
 
-    plot_grid_2D(i, "grid" + str(i) + ".png")
     moment_plot_filename = os.path.join(
         f"{campaign.campaign_dir}", "moments" + str(i) + ".png"
     )
@@ -161,16 +216,6 @@ while sobols_error > 1e-2:
     distribution_plot_filename = os.path.join(
         f"{campaign.campaign_dir}", "distribution" + str(i) + ".png"
     )
-    plt.figure()
-    results.plot_sobols_first(
-        "T",
-        ylabel="iteration" + str(i),
-        xlabel=r"$\rho$",
-        filename=sobols_plot_filename,
-    )
-    plt.ylim(0, 1)
-    plt.savefig("sobols" + str(i) + ".png")
-    plt.close()
 
     plt.figure()
     custom_moments_plot(results, moment_plot_filename, i)
@@ -192,7 +237,6 @@ while sobols_error > 1e-2:
             sobols_error += np.mean(abs(sobols[j] - sobols_last[j]))
         sobols_error = sobols_error / count
         error_vs_its.append(sobols_error)
-        print(str(i) + " " + str(sobols_error))
     sobols_last = sobols
 
     plt.figure()
@@ -223,105 +267,72 @@ while sobols_error > 1e-2:
     plt.savefig("samples_vs_iterations_log.png")
     plt.close()
 
-    if i > 100:
+    df = campaign.get_collation_result()
+
+    list_atol = df["solver:atol"].to_numpy()
+    list_rtol = df["solver:rtol"].to_numpy()
+    cps_atol = np.unique(df["solver:atol"].to_numpy())
+    cps_rtol = np.unique(df["solver:rtol"].to_numpy())
+    # code_evals = df["T"].to_numpy()
+
+    n = 100
+    f = np.zeros(shape=(n, n))
+    cp = np.zeros(shape=(len(cps_atol), len(cps_rtol)))
+    # sols = np.zeros(shape=(len(code_evals)))
+    avec = np.linspace(-14, 0, n)
+    rvec = np.linspace(-14, 0, n)
+    for ai, a in enumerate(avec):
+        for ri, r in enumerate(rvec):
+            f[ai, ri] = analysis.surrogate(qoi="T", x=np.array([a, r]))[0]
+
+    plt.figure()
+    plt.contourf(avec, rvec, f)
+    for ia, _ in enumerate(list_atol):
+        plt.plot(list_rtol[ia], list_atol[ia], "r.")
+    # plt.plot(areal,np.log10(0.02*rvec),'k-',label="atol=0.02 rtol")
+    plt.xlabel("$\log_{10}(rtol)$")
+    plt.ylabel("$\log_{10}(atol)$")
+    plt.title("log Error")
+    # plt.xlim(-15,0)
+    # plt.ylim(-15,0)
+    # plt.legend()
+    plt.colorbar()
+    plt.savefig("contour_log_order_" + str(i) + ".png")
+    plt.close()
+
+    plt.figure()
+    plt.pcolormesh(avec, rvec, f)
+    for ia, _ in enumerate(list_atol):
+        plt.plot(list_rtol[ia], list_atol[ia], "r.")
+    # plt.plot(areal,np.log10(0.02*rvec),'k-',label="atol=0.02 rtol")
+    plt.xlabel("$\log_{10}(rtol)$")
+    plt.ylabel("$\log_{10}(atol)$")
+    plt.title("log Error")
+    # plt.xlim(-15,0)
+    # plt.ylim(-15,0)
+    # plt.legend()
+    plt.colorbar()
+    plt.savefig("pcolormesh_log_order_" + str(i) + ".png")
+    plt.close()
+
+    if i > 5:
         break
 
-    # print(results.sobols_second("T"))
-    # plt.figure()
-    # results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
+    np.save("f_order_" + str(i), f)
+    np.save("cps_atol_order_" + str(i), cps_atol)
+    np.save("cps_rtol_order_" + str(i), cps_rtol)
+    np.save("list_atol_order_" + str(i), list_atol)
+    np.save("list_rtol_order_" + str(i), list_rtol)
+    np.save("cp_order_" + str(i), cp)
+
 time_end = time.time()
 
 print(f"Finished, took {time_end - time_start}")
 
-# results = campaign.analyse(qoi_cols=["T"])
-
-
-###plt.figure()
-###sobols = []
-#### retrieve the Sobol indices from the results object
-###params = list(sampler.vary.get_keys())
-###for param in params:
-###    sobols.append(results._get_sobols_first('T', param))
-#### make a bar chart
-###print(sobols)
-###fig = plt.figure()
-###ax = fig.add_subplot(111, title='First-order Sobol indices')
-###ax.bar(range(len(sobols)), height=np.array(sobols).flatten())
-###ax.set_xticks(range(len(sobols)))
-###ax.set_xticklabels(params)
-###plt.xticks(rotation=90)
-###plt.tight_layout()
-###plt.savefig("sobols.png")
-
-
-results.plot_sobols_first("T", xlabel=r"$\rho$", filename=sobols_plot_filename)
-
-fig, ax = plt.subplots()
-xvalues = np.arange(len(results.describe("T", "mean")))
-ax.fill_between(
-    xvalues,
-    results.describe("T", "mean") - results.describe("T", "std"),
-    results.describe("T", "mean") + results.describe("T", "std"),
-    label="std",
-    alpha=0.2,
-)
-ax.plot(xvalues, results.describe("T", "mean"), label="mean")
-try:
-    ax.plot(xvalues, results.describe("T", "1%"), "--", label="1%", color="black")
-    ax.plot(xvalues, results.describe("T", "99%"), "--", label="99%", color="black")
-except RuntimeError:
-    pass
-ax.grid(True)
-ax.set_ylabel("T")
-ax.set_xlabel(r"$\rho$")
-ax.legend()
-fig.savefig(moment_plot_filename)
-plt.close()
 
 plt.figure()
-plt.plot(error_vs_its)
-plt.xlabel("Iterations")
-plt.ylabel("Summed error")
-plt.savefig("error_vs_iterations.png")
-plt.close()
-
-plt.figure()
-plt.semilogy(error_vs_its)
-plt.xlabel("Iterations")
-plt.ylabel("Summed error")
-plt.savefig("error_vs_iterations_log.png")
-plt.close()
-
-plt.figure()
-plt.plot(samples_vs_its)
-plt.xlabel("Iterations")
-plt.ylabel("Samples")
-plt.savefig("samples_vs_iterations.png")
-plt.close()
-
-plt.figure()
-plt.semilogy(samples_vs_its)
-plt.xlabel("Iterations")
-plt.ylabel("Samples")
-plt.savefig("samples_vs_iterations_log.png")
-plt.close()
-
-###plt.figure()
-###results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
-
-###fig, ax = plt.subplots()
-###p = results.get_pdf("T")
-###print(p)
-# ax.hist(d.T[0], density=True, bins=50)
-# t1 = results.raw_data["output_distributions"]["T"][49]
-# ax.plot(np.linspace(t1.lower, t1.upper), t1.pdf(np.linspace(t1.lower, t1.upper)))
-# fig.savefig(distribution_plot_filename)
-
-# d = campaign.get_collation_result()
-# fig, ax = plt.subplots()
-# ax.hist(d.T[0], density=True, bins=50)
-# t1 = results.raw_data["output_distributions"]["T"][49]
-# ax.plot(np.linspace(t1.lower, t1.upper), t1.pdf(np.linspace(t1.lower, t1.upper)))
-# fig.savefig(distribution_plot_filename)
-
-print(f"Results are in:\n\t{moment_plot_filename}\n\t{sobols_plot_filename}")
+rainbow_line(plt, f, avec, rvec, "rtol", axis=0)
+plt.legend()
+plt.xlabel("atol")
+plt.ylabel("Error at final time, centre point")
+plt.savefig("E_vs_atol_order_" + str(i) + ".png")

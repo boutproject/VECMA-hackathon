@@ -36,7 +36,7 @@ def refine_sampling_plan(number_of_refinements):
 
         # accept one of the multi indices of the new admissible set
         data_frame = campaign.get_collation_result()
-        analysis.adapt_dimension("T", data_frame)
+        analysis.adapt_dimension("T_centre", data_frame)
 
 
 def plot_grid_2D(i, filename="out.pdf"):
@@ -60,24 +60,24 @@ def plot_grid_2D(i, filename="out.pdf"):
     plt.close()
 
 
-def custom_moments_plot(results, filename, i):
+def custom_moments_plot(var, results, filename, i):
     fig, ax = plt.subplots()
-    xvalues = np.arange(len(results.describe("T", "mean")))
+    xvalues = np.arange(len(results.describe(var, "mean")))
     ax.fill_between(
         xvalues,
-        results.describe("T", "mean") - results.describe("T", "std"),
-        results.describe("T", "mean") + results.describe("T", "std"),
+        results.describe(var, "mean") - results.describe(var, "std"),
+        results.describe(var, "mean") + results.describe(var, "std"),
         label="std",
         alpha=0.2,
     )
-    ax.plot(xvalues, results.describe("T", "mean"), label="mean")
+    ax.plot(xvalues, results.describe(var, "mean"), label="mean")
     try:
-        ax.plot(xvalues, results.describe("T", "1%"), "--", label="1%", color="black")
-        ax.plot(xvalues, results.describe("T", "99%"), "--", label="99%", color="black")
+        ax.plot(xvalues, results.describe(var, "1%"), "--", label="1%", color="black")
+        ax.plot(xvalues, results.describe(var, "99%"), "--", label="99%", color="black")
     except RuntimeError:
         pass
     ax.grid(True)
-    ax.set_ylabel("T")
+    ax.set_ylabel(var)
     ax.set_xlabel(r"$\rho$")
     ax.set_title("iteration " + str(i))
     ax.legend()
@@ -86,7 +86,12 @@ def custom_moments_plot(results, filename, i):
 
 
 encoder = boutvecma.BOUTEncoder(template_input="../../models/conduction/data/BOUT.inp")
-decoder = boutvecma.SimpleBOUTDecoder(variables=["T"])
+
+sample_locations = [
+    {"variable": "T", "output_name": "T_centre", "x": 0, "y": 50, "z": 0},
+    {"variable": "T", "output_name": "T_edge", "x": 0, "y": 10, "z": 0},
+]
+decoder = boutvecma.SampleLocationBOUTDecoder(sample_locations=sample_locations)
 params = {
     "conduction:chi": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
     "T:scale": {"type": "float", "min": 0.0, "max": 1e3, "default": 1.0},
@@ -96,11 +101,11 @@ params = {
 actions = uq.actions.local_execute(
     encoder,
     os.path.abspath(
-        "../../build/models/conduction/conduction -q -q -q -q  -d . |& tee run.log"
+        "../../build/models/conduction/conduction -q -q -q -q  -d . nout=200 |& tee run.log"
     ),
     decoder,
 )
-campaign = uq.Campaign(name="Conduction.", actions=actions, params=params)
+campaign = uq.Campaign(name="Time.", actions=actions, params=params)
 
 vary = {
     "conduction:chi": chaospy.Uniform(0.2, 4.0),
@@ -133,7 +138,7 @@ campaign.execute().collate()
 # results = campaign.analyse(qoi_cols=["T"])
 
 # Create an analysis class and run the analysis.
-analysis = uq.analysis.SCAnalysis(sampler=sampler, qoi_cols=["T"])
+analysis = uq.analysis.SCAnalysis(sampler=sampler, qoi_cols=["T_centre", "T_edge"])
 campaign.apply_analysis(analysis)
 plot_grid_2D(0, "grid0.png")
 
@@ -141,7 +146,7 @@ i = 0
 sobols_error = 1e6
 error_vs_its = []
 samples_vs_its = []
-while sobols_error > 1e-2:
+while sobols_error > 1e-3:
     i += 1
     refine_sampling_plan(1)
     campaign.apply_analysis(analysis)
@@ -150,30 +155,48 @@ while sobols_error > 1e-2:
 
     plot_grid_2D(i, "grid" + str(i) + ".png")
     moment_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "moments" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"moments_centre_{i}.png"
+    )
+    moment_edge_plot_filename = os.path.join(
+        f"{campaign.campaign_dir}", f"moments_edge_{i}.png"
     )
     sobols_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "sobols_first" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"sobols_first_centre_{i}.png"
+    )
+    sobols_edge_plot_filename = os.path.join(
+        f"{campaign.campaign_dir}", f"sobols_first_edge_{i}.png"
     )
     sobols_second_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "sobols_second" + str(i) + ".png"
+        f"{campaign.campaign_dir}", f"sobols_second_{i}.png"
     )
     distribution_plot_filename = os.path.join(
-        f"{campaign.campaign_dir}", "distribution" + str(i) + ".png"
+        f"{campaign.campaign_dir}", "distribution_{i}.png"
     )
     plt.figure()
     results.plot_sobols_first(
-        "T",
-        ylabel="iteration" + str(i),
-        xlabel=r"$\rho$",
+        "T_centre",
+        ylabel=f"iteration {i}",
+        xlabel=r"$t$",
         filename=sobols_plot_filename,
     )
     plt.ylim(0, 1)
-    plt.savefig("sobols" + str(i) + ".png")
+    plt.savefig("sobols_centre" + str(i) + ".png")
     plt.close()
 
     plt.figure()
-    custom_moments_plot(results, moment_plot_filename, i)
+    results.plot_sobols_first(
+        "T_edge",
+        ylabel=f"iteration {i}",
+        xlabel=r"$t$",
+        filename=sobols_edge_plot_filename,
+    )
+    plt.ylim(0, 1)
+    plt.savefig("sobols_edge" + str(i) + ".png")
+    plt.close()
+
+    plt.figure()
+    custom_moments_plot("T_centre", results, moment_plot_filename, i)
+    custom_moments_plot("T_edge", results, moment_edge_plot_filename, i)
     plt.close()
 
     # Prevent overwrite of old fig
@@ -182,7 +205,7 @@ while sobols_error > 1e-2:
     plt.savefig("stat_convergence.png")
     plt.close()
 
-    sobols = analysis.get_sobol_indices("T")
+    sobols = analysis.get_sobol_indices("T_centre")
 
     if i > 1:
         sobols_error = 0
@@ -192,7 +215,6 @@ while sobols_error > 1e-2:
             sobols_error += np.mean(abs(sobols[j] - sobols_last[j]))
         sobols_error = sobols_error / count
         error_vs_its.append(sobols_error)
-        print(str(i) + " " + str(sobols_error))
     sobols_last = sobols
 
     plt.figure()
@@ -226,54 +248,34 @@ while sobols_error > 1e-2:
     if i > 100:
         break
 
-    # print(results.sobols_second("T"))
-    # plt.figure()
-    # results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
 time_end = time.time()
 
 print(f"Finished, took {time_end - time_start}")
 
-# results = campaign.analyse(qoi_cols=["T"])
-
-
-###plt.figure()
-###sobols = []
-#### retrieve the Sobol indices from the results object
-###params = list(sampler.vary.get_keys())
-###for param in params:
-###    sobols.append(results._get_sobols_first('T', param))
-#### make a bar chart
-###print(sobols)
-###fig = plt.figure()
-###ax = fig.add_subplot(111, title='First-order Sobol indices')
-###ax.bar(range(len(sobols)), height=np.array(sobols).flatten())
-###ax.set_xticks(range(len(sobols)))
-###ax.set_xticklabels(params)
-###plt.xticks(rotation=90)
-###plt.tight_layout()
-###plt.savefig("sobols.png")
-
-
-results.plot_sobols_first("T", xlabel=r"$\rho$", filename=sobols_plot_filename)
+results.plot_sobols_first("T_centre", xlabel=r"$\rho$", filename=sobols_plot_filename)
 
 fig, ax = plt.subplots()
-xvalues = np.arange(len(results.describe("T", "mean")))
+xvalues = np.arange(len(results.describe("T_centre", "mean")))
 ax.fill_between(
     xvalues,
-    results.describe("T", "mean") - results.describe("T", "std"),
-    results.describe("T", "mean") + results.describe("T", "std"),
+    results.describe("T_centre", "mean") - results.describe("T_centre", "std"),
+    results.describe("T_centre", "mean") + results.describe("T_centre", "std"),
     label="std",
     alpha=0.2,
 )
-ax.plot(xvalues, results.describe("T", "mean"), label="mean")
+ax.plot(xvalues, results.describe("T_centre", "mean"), label="mean")
 try:
-    ax.plot(xvalues, results.describe("T", "1%"), "--", label="1%", color="black")
-    ax.plot(xvalues, results.describe("T", "99%"), "--", label="99%", color="black")
+    ax.plot(
+        xvalues, results.describe("T_centre", "1%"), "--", label="1%", color="black"
+    )
+    ax.plot(
+        xvalues, results.describe("T_centre", "99%"), "--", label="99%", color="black"
+    )
 except RuntimeError:
     pass
 ax.grid(True)
-ax.set_ylabel("T")
-ax.set_xlabel(r"$\rho$")
+ax.set_ylabel("T_centre")
+ax.set_xlabel(r"$t$")
 ax.legend()
 fig.savefig(moment_plot_filename)
 plt.close()
@@ -305,23 +307,5 @@ plt.xlabel("Iterations")
 plt.ylabel("Samples")
 plt.savefig("samples_vs_iterations_log.png")
 plt.close()
-
-###plt.figure()
-###results.plot_moments("T", xlabel=r"$\rho$", filename=moment_plot_filename)
-
-###fig, ax = plt.subplots()
-###p = results.get_pdf("T")
-###print(p)
-# ax.hist(d.T[0], density=True, bins=50)
-# t1 = results.raw_data["output_distributions"]["T"][49]
-# ax.plot(np.linspace(t1.lower, t1.upper), t1.pdf(np.linspace(t1.lower, t1.upper)))
-# fig.savefig(distribution_plot_filename)
-
-# d = campaign.get_collation_result()
-# fig, ax = plt.subplots()
-# ax.hist(d.T[0], density=True, bins=50)
-# t1 = results.raw_data["output_distributions"]["T"][49]
-# ax.plot(np.linspace(t1.lower, t1.upper), t1.pdf(np.linspace(t1.lower, t1.upper)))
-# fig.savefig(distribution_plot_filename)
 
 print(f"Results are in:\n\t{moment_plot_filename}\n\t{sobols_plot_filename}")
