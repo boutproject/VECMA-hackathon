@@ -19,8 +19,6 @@ params = {
     "storm:R_c": {"type": "float", "min": 1.3, "max": 1.7, "default": 1.5},
     "storm:mu_n0": {"type": "float", "min": 0.0005, "max": 0.05, "default": 0.005},
     "storm:mu_vort0": {"type": "float", "min": 0.0005, "max": 0.05, "default": 0.005},
-    "T:gauss_width": {"type": "float", "min": 0.0, "max": 1e3, "default": 0.2},
-    "T:gauss_centre": {"type": "float", "min": 0.0, "max": 2 * np.pi, "default": np.pi},
 }
 actions = uq.actions.local_execute(
     encoder,
