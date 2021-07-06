@@ -144,8 +144,11 @@ class SampleLocationBOUTDecoder(BaseBOUTDecoder):
     def element_version():
         return "0.1.0"
 
+
 class StormProfileBOUTDecoder(BaseBOUTDecoder):
-    """Returns log(variable)"""
+    """Returns t- and z-averaged profiles of given variable, intended for use
+    with Storm2d simulations.
+    """
 
     def __init__(self, target_filename=None, variables=None):
         """
@@ -170,6 +173,7 @@ class StormProfileBOUTDecoder(BaseBOUTDecoder):
     @staticmethod
     def element_version():
         return "0.1.0"
+
 
 class LogDataBOUTDecoder(BaseBOUTDecoder):
     """Returns log(variable)"""
