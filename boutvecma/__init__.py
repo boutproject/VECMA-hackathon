@@ -7,5 +7,6 @@ from .decoder import (
     LogDataBOUTDecoder,
     AbsErrorBOUTDecoder,
     AbsLogErrorBOUTDecoder,
+    StormProfileBOUTDecoder,
 )
 from .encoder import BOUTEncoder, BOUTExpEncoder

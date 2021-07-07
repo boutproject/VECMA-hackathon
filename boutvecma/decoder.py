@@ -145,6 +145,36 @@ class SampleLocationBOUTDecoder(BaseBOUTDecoder):
         return "0.1.0"
 
 
+class StormProfileBOUTDecoder(BaseBOUTDecoder):
+    """Returns t- and z-averaged profiles of given variable, intended for use
+    with Storm2d simulations.
+    """
+
+    def __init__(self, target_filename=None, variables=None):
+        """
+        Parameters
+        ==========
+        variables: iterable or None
+            Iterable of variables to collect from the output. If None, return everything
+        """
+        super().__init__(target_filename=target_filename)
+
+        self.variables = variables
+
+    def parse_sim_output(self, run_info=None, *args, **kwargs):
+        df = self.get_outputs(run_info).squeeze()
+        df = df.isel(t=slice(1, None))
+
+        return {
+            variable: flatten_dataframe_for_JSON(df[variable].mean(dim=["t", "z"]))
+            for variable in self.variables
+        }
+
+    @staticmethod
+    def element_version():
+        return "0.1.0"
+
+
 class LogDataBOUTDecoder(BaseBOUTDecoder):
     """Returns log(variable)"""
 
