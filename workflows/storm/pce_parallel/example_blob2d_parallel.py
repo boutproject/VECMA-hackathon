@@ -5,10 +5,10 @@ import boutvecma
 import easyvvuq as uq
 import chaospy
 import os
+from shutil import rmtree
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -24,9 +24,21 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    work_dir = os.path.dirname(os.path.abspath(__file__))
+    campaign_work_dir = os.path.join(work_dir, "example_parallel")
+    # clear the target campaign dir
+    if os.path.exists(campaign_work_dir):
+        rmtree(campaign_work_dir)
+    os.makedirs(campaign_work_dir)
+
+    # Set up a fresh campaign called "coffee_pce"
+    db_location = "sqlite:///" + campaign_work_dir + "/campaign.db"
     campaign = uq.Campaign(
-        name="Storm."
+        name='Storm-uq.',
+        db_location=db_location,
+        work_dir=campaign_work_dir
     )
+
     print(f"Running in {campaign.campaign_dir}")
 
     # Define parameter space
@@ -46,38 +58,48 @@ if __name__ == '__main__':
         variables=["n","phi","vort"]
     )
 
+#    execute = uq.actions.ExecuteLocal(
+#        os.path.abspath(
+#            STORMPATH+"/storm2d -d . -q -q -q -q |& tee run.log"
+#        ),
+#    )
+    execute = uq.actions.execute_slurm.ExecuteSLURM(
+        "slurm_template.sh", "TARGET_DIR"
+    )
+
+
+    actions = uq.actions.Actions(
+        uq.actions.CreateRunDirectory(root=campaign_work_dir, flatten=True),
+        uq.actions.Encode(encoder),
+        execute,
+        uq.actions.Decode(decoder)
+    )
 
     campaign.add_app(
-        name="Storm_uq",
+        name="Storm-uq.",
         params=params,
         actions=actions
     )
 
     # Create the sampler
     vary = {
-        "model:Te0": chaospy.Uniform(4.0, 6.0),
-        "model:n0": chaospy.Uniform(1.5e18, 2.5e18),
-        "model:D_vort": chaospy.Uniform(1e-7, 1e-5),
-        "model:D_n": chaospy.Uniform(1e-7, 1e-5),
+        "mesh:Ly": chaospy.Uniform(4400, 6600),
+#        "storm:R_c": chaospy.Uniform(1.3, 1.7),
+#        "storm:mu_n0": chaospy.Uniform(0.0005, 0.05),
+#        "storm:mu_vort0": chaospy.Uniform(0.0005, 0.05),
     }
-    sampler = uq.sampling.SCSampler(vary=vary, polynomial_order=3)
+    sampler = uq.sampling.SCSampler(vary=vary, polynomial_order=1)
 
     # Associate the sampler with the campaign
     campaign.set_sampler(sampler)
 
-    campaign.draw_samples()
-
-    run_dirs = campaign.populate_runs_dir()
-
-    print(f"Created run directories: {run_dirs}")
-
-    cmd = os.path.abspath("build/models/blob2d/blob2d")
-
     time_start = time.time()
-    campaign.apply_for_each_run_dir(
-        uq.actions.execute_slurm.ExecuteSLURM("slurm_template.sh", "TARGET_DIR"),
-        batch_size=16
-    ).start()
+    campaign.execute().collate(progress_bar=True)
+    #campaign.execute(pool=client).collate(progress_bar=True)
+#    campaign.apply_for_each_run_dir(
+#        uq.actions.execute_slurm.ExecuteSLURM("slurm_template.sh", "TARGET_DIR"),
+#        batch_size=16
+#    ).start()
 
     time_end = time.time()
 
